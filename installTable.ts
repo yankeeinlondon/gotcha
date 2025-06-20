@@ -82,7 +82,7 @@ function quote(clean: boolean = false) {
     return clean ? `&quote;` : `"`;
 }
 
-function clipboardContainer(cleanInput: string) {
+function clipboardContainer(cleanInput: string): string {
     return [
         `<div class="zeroclipboard-container">`,
         `<clipboard-copy aria-label="Copy" class="ClipboardButton btn btn-invisible js-clipboard-copy m-2 p-0 d-flex flex-justify-center flex-items-center" data-copy-feedback="Copied!" data-tooltip-direction="w" value="${cleanInput}" tabindex="0" role="button">`,
@@ -95,7 +95,7 @@ function clipboardContainer(cleanInput: string) {
         `</svg>`,
         `</clipboard-copy>`,
         `</div>`
-    ]
+    ].join("")
 }
 
 function container(cmd: Command) {
@@ -106,7 +106,7 @@ function container(cmd: Command) {
         `</pre>`,
         clipboardContainer(cmd(true)),
         `</div>`
-    ].join();
+    ].join("");
 
     return structure;
 }
