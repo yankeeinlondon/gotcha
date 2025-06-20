@@ -12,12 +12,43 @@ A type-safe wrapper around the lightning fast [**undici**](https://undici.nodejs
 
 ## Installation
 
+### Node.js (npm)
+
 ```bash
 npm install gotcha
 # or
 pnpm add gotcha
 # or
 yarn add gotcha
+```
+
+### Deno/JSR
+
+```typescript
+import { gotcha, isOk } from "jsr:@yankeeinlondon/gotcha";
+```
+
+Or add to your `deno.json`:
+
+```json
+{
+  "imports": {
+    "gotcha": "jsr:@yankeeinlondon/gotcha"
+  }
+}
+```
+
+### GitHub Packages
+
+```bash
+npm install @yankeeinlondon/gotcha --registry=https://npm.pkg.github.com
+```
+
+Or configure `.npmrc`:
+
+```
+@yankeeinlondon:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
 ```
 
 ## Basic Usage

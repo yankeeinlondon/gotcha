@@ -1,0 +1,19 @@
+{
+  "name": "@yankeeinlondon/gotcha",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publish": {
+    "exclude": [
+      "tests/",
+      "dist/",
+      "node_modules/",
+      ".github/",
+      "*.config.*",
+      "package.json",
+      "package-lock.json",
+      "pnpm-lock.yaml"
+    ]
+  }
+}

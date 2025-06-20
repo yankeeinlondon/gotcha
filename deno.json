@@ -1,0 +1,31 @@
+{
+  "name": "@yankeeinlondon/gotcha",
+  "version": "0.1.0",
+  "exports": "./src/index.ts",
+  "tasks": {
+    "test": "deno test --allow-net",
+    "lint": "deno lint src/",
+    "fmt": "deno fmt src/"
+  },
+  "imports": {
+    "@yankeeinlondon/kind-error": "npm:@yankeeinlondon/kind-error@^1.4.1",
+    "inferred-types": "npm:inferred-types@^0.55.23",
+    "undici": "npm:undici@^7.10.0"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.ns", "es2022"]
+  },
+  "publish": {
+    "exclude": [
+      "tests/",
+      "dist/",
+      "node_modules/",
+      ".github/",
+      "*.config.*",
+      "package.json",
+      "package-lock.json",
+      "pnpm-lock.yaml"
+    ]
+  }
+}

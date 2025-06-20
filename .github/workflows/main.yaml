@@ -22,6 +22,46 @@ jobs:
     secrets:
       npm_token: ${{secrets.NPM_TOKEN}}
 
+  publish_jsr:
+    name: jsr
+    if: ( contains(github.event.head_commit.message, 'release v') )
+    needs:
+      - testing
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish to JSR
+        run: npx jsr publish
+
+  publish_github:
+    name: github packages
+    if: ( contains(github.event.head_commit.message, 'release v') )
+    needs:
+      - testing
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: https://npm.pkg.github.com/
+      - run: npm ci
+      - name: Create scoped package.json for GitHub Packages
+        run: |
+          sed 's/"name": "gotcha"/"name": "@yankeeinlondon\/gotcha"/' package.json > package-github.json
+          mv package-github.json package.json
+      - name: Setup GitHub Packages registry
+        run: cp .npmrc.github .npmrc
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
   do_not_publish:
     name: npm / no publication
     if: ( !contains(github.event.head_commit.message, 'release v') )
