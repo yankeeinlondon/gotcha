@@ -42,8 +42,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Publish to JSR
         run: npx jsr publish
-        env:
-          JSR_TOKEN: ${{secrets.JSR_TOKEN}}
 
   publish_github:
     name: github packages
@@ -59,14 +57,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-          registry-url: https://npm.pkg.github.com/
       - uses: pnpm/action-setup@v2
         with:
           version: latest
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Setup GitHub Packages registry
-        run: cp .npmrc.github .npmrc
+        run: |
+          cp .npmrc.github .npmrc
+          echo "@yankeeinlondon:registry=https://npm.pkg.github.com/" >> .npmrc
       - name: Publish to GitHub Packages
         run: npm publish
         env:
