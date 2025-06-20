@@ -99,7 +99,7 @@ if (isOk(result)) {
 ### Basic Timeout
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk, timedOut } from "gotcha";
 
 // Timeout after 5 seconds
 const result = await gotcha("https://slow-api.example.com/data", {
@@ -109,8 +109,9 @@ const result = await gotcha("https://slow-api.example.com/data", {
 if (isOk(result)) {
     const data = await result.body.json();
     console.log("Data:", data);
-} else if (result.kind === "timeout") {
+} else if (timedOut(result)) {
     console.log(`Request timed out after ${result.context.timeout}ms`);
+    console.log(`Elapsed time: ${result.context.elapsedTime}ms`);
 } else {
     console.error(result.toString());
 }
@@ -301,18 +302,22 @@ if (isOk(result)) {
 Gotcha is written in TypeScript and provides full type safety:
 
 ```ts
-import { gotcha, isOk, type NetworkResponse } from "gotcha";
+import { gotcha, isOk, timedOut, type NetworkResponse } from "gotcha";
 
 // Result is typed as NetworkResponse | Error
 const result = await gotcha("https://api.example.com/data");
 
-// Type narrowing works naturally with isOk()
+// Type narrowing works naturally with type guards
 if (isOk(result)) {
     // result is typed as NetworkResponse (undici response)
     // Full undici response API is available
     const data = await result.body.json();
+} else if (timedOut(result)) {
+    // result.context is typed with timeout-specific properties
+    console.log(`Timeout: ${result.context.timeout}ms`);
+    console.log(`Elapsed: ${result.context.elapsedTime}ms`);
 } else {
-    // result.kind is typed as "timeout" | "redirection" | "client-error" | "server-error"
+    // result.kind is typed as "redirection" | "client-error" | "server-error"
     // result.context is typed with appropriate properties
     console.error(result.toString());
 }

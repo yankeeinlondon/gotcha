@@ -44,7 +44,7 @@ export async function request(
 
         // Merge the timeout signal with any existing signal
         const existingSignal = undiciOptions?.signal;
-        if (existingSignal) {
+        if (existingSignal && existingSignal instanceof AbortSignal) {
             // If there's already a signal, we need to handle both
             const combinedController = new AbortController();
 

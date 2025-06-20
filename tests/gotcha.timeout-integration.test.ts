@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { gotcha } from "~/gotcha";
 
 const isWindows = process.platform === "win32";
+const isCI = process.env.CI === "true";
 
 describe("gotcha - Timeout Integration Tests", () => {
     // These tests use real HTTP endpoints for timeout integration testing
@@ -223,7 +224,7 @@ describe("gotcha - Timeout Integration Tests", () => {
             });
         });
 
-        it("should provide accurate error context for real timeouts", async () => {
+        it.skipIf(isCI)("should provide accurate error context for real timeouts", async () => {
             const testUrl = "https://httpbin.org/delay/2";
             const timeoutMs = 1000;
             const startTime = Date.now();
@@ -242,6 +243,9 @@ describe("gotcha - Timeout Integration Tests", () => {
             
             expect(result).toBeInstanceOf(Error);
             if (result instanceof Error) {
+                // First check that it's actually a timeout error, not another error type
+                expect(result.kind).toBe("timeout");
+                
                 const context = (result as any).context;
                 
                 expect(context.url).toBe(testUrl);
