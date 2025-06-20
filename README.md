@@ -14,6 +14,7 @@ A type-safe wrapper around the lightning fast [**undici**](https://undici.nodejs
 
 #### NPM Registry
 
+| <span style="font-weight: 200">Manager</span>| <span style="font-weight: 200">Shell Command</span> |
 | --- | --- |
 | **npm** | npm install @yankeeinlondon/gotcha  |
 | **pnpm** | pnpm add @yankeeinlondon/gotcha | 
@@ -21,11 +22,8 @@ A type-safe wrapper around the lightning fast [**undici**](https://undici.nodejs
 | **bun** | bun add @yankeeinlondon/gotcha | 
 
 <details>
-
 <summary>
-
-> Click here for **Deno** and **JSR** installation details
-
+Click here for **Deno** and **JSR** installation details
 </summary>
 
 ### Deno/JSR
