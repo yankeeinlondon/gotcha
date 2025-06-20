@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { gotcha } from "~/gotcha";
 
-describe("gotcha - Integration Tests with Real Endpoints", () => {
+const isCI = process.env.CI === "true";
+
+describe.skipIf(isCI)("gotcha - Integration Tests with Real Endpoints", () => {
     // These tests use real HTTP endpoints for integration testing
     // Note: These tests may be slower and require internet connectivity
 
