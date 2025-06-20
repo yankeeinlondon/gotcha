@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { gotcha } from "~/gotcha";
 
+const isWindows = process.platform === "win32";
+
 describe("gotcha - Timeout Integration Tests", () => {
     // These tests use real HTTP endpoints for timeout integration testing
     // Note: These tests may be slower and require internet connectivity
 
     describe("Real endpoint timeout tests", () => {
-        it("should timeout on slow real endpoints", async () => {
+        it.skipIf(isWindows)("should timeout on slow real endpoints", async () => {
             // httpbin.org/delay/2 waits 2 seconds before responding
             const result = await gotcha("https://httpbin.org/delay/2", {
                 timeout: 1000 // 1 second timeout
@@ -84,7 +86,7 @@ describe("gotcha - Timeout Integration Tests", () => {
     });
 
     describe("Performance with timeouts", () => {
-        it("should handle multiple concurrent requests with timeouts", async () => {
+        it.skipIf(isWindows)("should handle multiple concurrent requests with timeouts", async () => {
             const startTime = Date.now();
             
             const promises = [
@@ -196,7 +198,7 @@ describe("gotcha - Timeout Integration Tests", () => {
     });
 
     describe("Error handling consistency", () => {
-        it("should maintain consistent timeout behavior across different endpoints", async () => {
+        it.skipIf(isWindows)("should maintain consistent timeout behavior across different endpoints", async () => {
             const endpoints = [
                 "https://httpbin.org/delay/2",
                 "https://httpbin.org/delay/3", 

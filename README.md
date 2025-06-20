@@ -46,7 +46,7 @@ npm install @yankeeinlondon/gotcha --registry=https://npm.pkg.github.com
 
 Or configure `.npmrc`:
 
-```
+```conf
 @yankeeinlondon:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
 ```

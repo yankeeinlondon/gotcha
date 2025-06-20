@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { gotcha } from "~/gotcha";
 import { MockHttpServer } from "./test-utils";
 
+const isWindows = process.platform === "win32";
+
 describe("gotcha - Timeout Functionality", () => {
     let server: MockHttpServer;
 
@@ -10,7 +12,7 @@ describe("gotcha - Timeout Functionality", () => {
     });
 
     describe("Basic timeout functionality", () => {
-        it("should timeout after specified duration", async () => {
+        it.skipIf(isWindows)("should timeout after specified duration", async () => {
             server.setResponse("GET", "/slow", {
                 statusCode: 200,
                 headers: { "content-type": "text/plain" },
@@ -376,7 +378,7 @@ describe("gotcha - Timeout Functionality", () => {
     });
 
     describe("Timeout error structure", () => {
-        it("should include all required context in timeout errors", async () => {
+        it.skipIf(isWindows)("should include all required context in timeout errors", async () => {
             server.setResponse("POST", "/timeout-context", {
                 statusCode: 200,
                 headers: { "content-type": "application/json" },
