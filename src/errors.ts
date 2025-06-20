@@ -25,7 +25,7 @@ export const ServerError = createKindError(
 );
 
 /**
- * An error type resulting from a network request not returning 
+ * An error type resulting from a network request not returning
  * before the specified time limit.
  */
 export const Timeout = createKindError(

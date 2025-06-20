@@ -29,7 +29,7 @@ export type GotchaReturn<T extends Gotcha = Gotcha> = T extends GotchaRequest
 
 /**
  * **UrlObject**
- * 
+ *
  * Provides an object-type which can be used to specify the URL you are requesting.
  */
 export interface UrlObject {
@@ -54,7 +54,7 @@ export type UndiciRequestOptions = UndiciRequestParams[1];
  * **GotchaRequestOptions**
  *
  * The request options.
- * 
+ *
  * - includes all the standard options provided by **undici**, but
  * - also include `timeout` if you wish to add a timeout timeframe
  * under which the promise will be aborted with the `AbortController`
