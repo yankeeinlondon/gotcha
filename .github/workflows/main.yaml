@@ -33,6 +33,13 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
       - name: Publish to JSR
         run: npx jsr publish
 
@@ -51,14 +58,15 @@ jobs:
         with:
           node-version: 18
           registry-url: https://npm.pkg.github.com/
-      - run: npm ci
-      - name: Create scoped package.json for GitHub Packages
-        run: |
-          sed 's/"name": "gotcha"/"name": "@yankeeinlondon\/gotcha"/' package.json > package-github.json
-          mv package-github.json package.json
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - name: Setup GitHub Packages registry
         run: cp .npmrc.github .npmrc
-      - run: npm publish
+      - name: Publish to GitHub Packages
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 

@@ -15,11 +15,11 @@ A type-safe wrapper around the lightning fast [**undici**](https://undici.nodejs
 ### Node.js (npm)
 
 ```bash
-npm install gotcha
+npm install @yankeeinlondon/gotcha
 # or
-pnpm add gotcha
+pnpm add @yankeeinlondon/gotcha
 # or
-yarn add gotcha
+yarn add @yankeeinlondon/gotcha
 ```
 
 ### Deno/JSR
@@ -56,7 +56,7 @@ Or configure `.npmrc`:
 ### Simple GET Request
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk } from "@yankeeinlondon/gotcha";
 
 const result = await gotcha("https://api.example.com/users");
 
@@ -73,7 +73,7 @@ if (isOk(result)) {
 ### POST Request with JSON
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk } from "@yankeeinlondon/gotcha";
 
 const payload = { name: "John Doe", email: "john@example.com" };
 
@@ -99,7 +99,7 @@ if (isOk(result)) {
 ### Basic Timeout
 
 ```ts
-import { gotcha, isOk, timedOut } from "gotcha";
+import { gotcha, isOk, timedOut } from "@yankeeinlondon/gotcha";
 
 // Timeout after 5 seconds
 const result = await gotcha("https://slow-api.example.com/data", {
@@ -120,7 +120,7 @@ if (isOk(result)) {
 ### Advanced Timeout Usage
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk } from "@yankeeinlondon/gotcha";
 
 // Different timeouts for different operations
 const quickCheck = await gotcha("https://api.example.com/health", {
@@ -152,7 +152,7 @@ const upload = await gotcha("https://api.example.com/upload", {
 Gotcha converts HTTP status codes into typed errors instead of throwing exceptions:
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk } from "@yankeeinlondon/gotcha";
 
 const result = await gotcha("https://api.example.com/endpoint");
 
@@ -198,7 +198,7 @@ if (isOk(result)) {
 ### URL Objects and Search Parameters
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk } from "@yankeeinlondon/gotcha";
 
 const url = new URL("https://api.example.com/search");
 url.searchParams.set("q", "javascript");
@@ -220,7 +220,7 @@ if (isOk(result)) {
 ### Custom Headers and Authentication
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk } from "@yankeeinlondon/gotcha";
 
 const result = await gotcha("https://api.example.com/protected", {
     headers: {
@@ -242,7 +242,7 @@ if (isOk(result)) {
 ### File Upload with Timeout
 
 ```ts
-import { gotcha, isOk } from "gotcha";
+import { gotcha, isOk } from "@yankeeinlondon/gotcha";
 import { createReadStream } from "fs";
 
 const fileStream = createReadStream("./large-file.zip");
@@ -302,7 +302,7 @@ if (isOk(result)) {
 Gotcha is written in TypeScript and provides full type safety:
 
 ```ts
-import { gotcha, isOk, timedOut, type NetworkResponse } from "gotcha";
+import { gotcha, isOk, timedOut, type NetworkResponse } from "@yankeeinlondon/gotcha";
 
 // Result is typed as NetworkResponse | Error
 const result = await gotcha("https://api.example.com/data");
@@ -325,4 +325,4 @@ if (isOk(result)) {
 
 ## License
 
-ISC 
+MIT 

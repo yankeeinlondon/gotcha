@@ -1,5 +1,5 @@
 {
-  "name": "gotcha",
+  "name": "@yankeeinlondon/gotcha",
   "version": "0.1.0",
   "description": "A type strong wrapper around the undici network client",
   "type": "module",
@@ -14,7 +14,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@antfu/eslint-config": "^4.15.0",
     "@type-challenges/utils": "^0.1.1",

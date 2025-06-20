@@ -1,6 +1,7 @@
 {
   "name": "@yankeeinlondon/gotcha",
   "version": "0.1.0",
+  "license": "MIT",
   "exports": "./src/index.ts",
   "tasks": {
     "test": "deno test --allow-net",
@@ -10,7 +11,10 @@
   "imports": {
     "@yankeeinlondon/kind-error": "npm:@yankeeinlondon/kind-error@^1.4.1",
     "inferred-types": "npm:inferred-types@^0.55.23",
-    "undici": "npm:undici@^7.10.0"
+    "undici": "npm:undici@^7.10.0",
+    "~/errors": "./src/errors.ts",
+    "~/types": "./src/types.ts",
+    "~/type-guards": "./src/type-guards/index.ts"
   },
   "compilerOptions": {
     "strict": true,
