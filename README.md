@@ -12,15 +12,14 @@ A type-safe wrapper around the lightning fast [**undici**](https://undici.nodejs
 
 ## Installation
 
-### Node.js (npm)
+### Node.js (npm registry)
 
-```bash
-npm install @yankeeinlondon/gotcha
-# or
-pnpm add @yankeeinlondon/gotcha
-# or
-yarn add @yankeeinlondon/gotcha
-```
+| Package Manager | Command |
+|---|---|
+| **npm** | `npm install @yankeeinlondon/gotcha` |
+| **pnpm** | `pnpm add @yankeeinlondon/gotcha` |
+| **yarn** | `yarn add @yankeeinlondon/gotcha` |
+| **bun** | `bun add @yankeeinlondon/gotcha` |
 
 ### Deno/JSR
 

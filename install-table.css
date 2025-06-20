@@ -1,0 +1,51 @@
+/* Install Table Styles */
+.install-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.install-table-header {
+  text-align: center;
+  font-weight: bold;
+  padding: 8px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+}
+
+.install-table-cell {
+  padding: 0;
+  vertical-align: top;
+}
+
+.install-command-container {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  border: 1px solid #d0d7de;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.install-copy-button {
+  background: #24292e;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  margin-left: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.install-copy-button:hover {
+  background: #444444;
+}
+
+.install-copy-button.copied {
+  background: #28a745 !important;
+}
