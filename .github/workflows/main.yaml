@@ -42,6 +42,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Publish to JSR
         run: npx jsr publish
+        env:
+          JSR_TOKEN: ${{secrets.JSR_TOKEN}}
 
   publish_github:
     name: github packages
