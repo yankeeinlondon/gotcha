@@ -4,19 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gotcha is a type-strong wrapper around the lightning-fast [undici](https://undici.nodejs.org/) network client. It provides enhanced error handling by converting HTTP error status codes (300+) into specific error types rather than throwing generic exceptions.
+Gotcha is a type-strong wrapper around the lightning-fast [undici](https://undici.nodejs.org/) network client. It provides enhanced error handling by converting HTTP error status codes (300+) into specific error types rather than throwing generic exceptions, and includes built-in timeout support using AbortController.
 
 ## Core Architecture
 
 ### Main Components
 
 - **`gotcha()`** - Main entry function with overloads for `GotchaRequest` and `Configure` types
-- **`request()`** - Wrapper around undici's request that returns typed errors for non-2xx responses
+- **`request()`** - Wrapper around undici's request that returns typed errors for non-2xx responses and timeouts
 - **Error Types** - Structured error handling via `@yankeeinlondon/kind-error`:
   - `Redirection` (300-399)
   - `ClientError` (400-499) 
   - `ServerError` (500+)
-  - `Timeout`
+  - `Timeout` (request timeout via AbortController)
+- **Timeout Support** - Built-in request timeout using AbortController with proper cleanup
 
 ### Type System
 

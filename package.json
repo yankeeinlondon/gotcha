@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsdown src/index.ts --format=cjs,esm --dts",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "release": "bumpp"
   },
   "keywords": [],
   "author": "",

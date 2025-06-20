@@ -4,7 +4,10 @@ import type { request } from "undici";
 import type { UndiciHeaders } from "undici/types/dispatcher";
 import type { IncomingHttpHeaders } from "undici/types/header";
 
-export type GotchaRequest = Parameters<typeof request>;
+export type GotchaRequest = [
+    url: Parameters<typeof request>[0],
+    options?: GotchaRequestOptions
+];
 export type Configure = [{ foo: number; bar: number }];
 
 export type Gotcha = GotchaRequest | Configure;
@@ -25,9 +28,24 @@ export interface UrlObject {
     search?: string;
 }
 
+/** the type of the **undici** `request` function */
 export type UndiciRequestFn = typeof request;
 
+/** the parameters of the **undici** `request` function */
 export type UndiciRequestParams = Parameters<UndiciRequestFn>;
+
+/** the "options" property in a **undici** `request` */
+export type UndiciRequestOptions = UndiciRequestParams[1];
+
+/**
+ * **GotchaRequestOptions**
+ *
+ * The request options.
+ */
+export type GotchaRequestOptions = UndiciRequestOptions & {
+    /** allows the addition of a **timeout** (in ms) */
+    timeout?: number;
+};
 
 export type NetworkResponse = Awaited<ReturnType<UndiciRequestFn>>;
 
