@@ -45,40 +45,40 @@ function readPackageJson(): PackageJson {
 
 const example = `<span class="pl-k">import</span> <span class="pl-kos">{</span> <span class="pl-s1">gotcha</span><span class="pl-kos">,</span> <span class="pl-s1">isOk</span> <span class="pl-kos">}</span> <span class="pl-k">from</span> <span class="pl-s">"jsr:@yankeeinlondon/gotcha"</span><span class="pl-kos">`
 
-function pkgMgr(str: string, clean: boolean = false) {
+function pkgMgr(str: string, clean: boolean) {
     return clean
         ? str
         : `<span class="pl-k">${str}</span>`;
 }
 
-function languageSymbol(str: string, clean: boolean = false) {
-    return pkgMgr(str);
+function languageSymbol(str: string, clean: boolean) {
+    return pkgMgr(str, clean);
 }
 
-function subCommand(str: string, clean: boolean = false) {
+function subCommand(str: string, clean: boolean) {
     return clean
         ? str
         : `<span class="pl-kos">${str}</span>`;
 }
 
-function languageBracket(str: string, clean: boolean = false) {
+function languageBracket(str: string, clean: boolean) {
     return clean
         ? str
         : `<span class="pl-kos">${str}</span>`
 }
 
-function pkgName(str: string, clean: boolean = false) {
+function pkgName(str: string, clean: boolean) {
     return clean
         ? str
         : `<span class="pl-s">${str}</span>`;
 }
 
-function symbolImport(str: string, clean: boolean = false) {
+function symbolImport(str: string, clean: boolean) {
     return clean
         ? str
         : `<span class="pl-s1">${str}</span>`;
 }
-function quote(clean: boolean = false) {
+function quote(clean: boolean) {
     return clean ? `&quote;` : `"`;
 }
 
@@ -163,11 +163,11 @@ function main() {
 
     log('\n1. Creating parsed variants for npm, pnpm, yarn, and bun:');
     log('-'.repeat(60));
-    const npm = (c: boolean) => `${pkgMgr('npm', c)} ${subCommand('install')} ${pkgName(packageName), c}`
-    const pnpm = (c: boolean) => `${pkgMgr('pnpm', c)} ${subCommand('add')} ${pkgName(packageName), c}`
-    const yarn = (c: boolean) => `${pkgMgr('yarn', c)} ${subCommand('add')} ${pkgName(packageName), c}`
-    const bun = (c: boolean) => `${pkgMgr('bun', c)} ${subCommand('add')} ${pkgName(packageName), c}`
-    log(`${chalk.bold("npm:")} ${chalk.dim(npm(false))}`)
+    const npm = (c: boolean) => `${pkgMgr('npm', c)} ${subCommand('install',c)} ${pkgName(packageName, c)}`
+    const pnpm = (c: boolean) => `${pkgMgr('pnpm', c)} ${subCommand('add',c)} ${pkgName(packageName, c)}`
+    const yarn = (c: boolean) => `${pkgMgr('yarn', c)} ${subCommand('add',c)} ${pkgName(packageName, c)}`
+    const bun = (c: boolean) => `${pkgMgr('bun', c)} ${subCommand('add',c)} ${pkgName(packageName, c)}`
+    log(`${chalk.bold("npm:")}\n    clean: ${npm(true)}\n   parsed: ${chalk.dim(npm(false))}`)
     log(`${chalk.bold("pnpm:")} ${chalk.dim(pnpm(false))}`)
     log(`${chalk.bold("yarn:")} ${chalk.dim(yarn(false))}`)
     log(`${chalk.bold("bun:")} ${chalk.dim(bun(false))}`)
