@@ -1,45 +1,56 @@
 {
-  "name": "@yankeeinlondon/gotcha",
-  "version": "0.1.0",
-  "description": "A type strong wrapper around the undici network client",
-  "type": "module",
-  "module": "dist/index.js",
-  "main": "dist/index.cjs",
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "build": "tsdown src/index.ts --format=cjs,esm --dts",
-    "lint": "eslint src",
-    "release": "bumpp"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "@antfu/eslint-config": "^4.15.0",
-    "@type-challenges/utils": "^0.1.1",
-    "@types/node": "22",
-    "bumpp": "^10.2.0",
-    "chalk": "^5.4.1",
-    "eslint": "^9.29.0",
-    "eslint-plugin-format": "^1.0.1",
-    "husky": "^9.1.7",
-    "jiti": "^2.4.2",
-    "npm-run-all": "^4.1.5",
-    "tsdown": "^0.12.8",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "@yankeeinlondon/kind-error": "^1.4.1",
-    "inferred-types": "^0.55.23",
-    "undici": "^7.10.0"
-  },
-  "peerDependencies": {
-    "chalk": ">=5"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  }
+    "name": "@yankeeinlondon/gotcha",
+    "version": "0.1.0",
+    "description": "A type strong wrapper around the undici network client",
+    "type": "module",
+    "module": "dist/index.js",
+    "main": "dist/index.cjs",
+    "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "build": "tsdown src/index.ts --format=cjs,esm --dts",
+        "lint": "eslint src",
+        "release": "bumpp --tag --commit --push --sign"
+    },
+    "keywords": [
+        "network",
+        "typescript"
+    ],
+    "author": "Ken Snyder <ken@ken.net>",
+    "license": "MIT",
+    "devDependencies": {
+        "@antfu/eslint-config": "^4.15.0",
+        "@type-challenges/utils": "^0.1.1",
+        "@types/node": "22",
+        "bumpp": "^10.2.0",
+        "chalk": "^5.4.1",
+        "eslint": "^9.29.0",
+        "eslint-plugin-format": "^1.0.1",
+        "husky": "^9.1.7",
+        "jiti": "^2.4.2",
+        "npm-run-all": "^4.1.5",
+        "tsdown": "^0.12.8",
+        "typescript": "^5.8.3",
+        "vitest": "^3.2.4"
+    },
+    "bumpp": {
+        "tag": {
+            "sign": true
+        },
+        "commit": {
+            "sign": true
+        }
+    },
+    "dependencies": {
+        "@yankeeinlondon/kind-error": "^1.4.1",
+        "inferred-types": "^0.55.23",
+        "undici": "^7.10.0"
+    },
+    "peerDependencies": {
+        "chalk": ">=5"
+    },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    }
 }
