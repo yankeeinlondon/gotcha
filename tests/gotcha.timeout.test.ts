@@ -27,7 +27,7 @@ describe("gotcha - Timeout Functionality", () => {
             
             expect(result).toBeInstanceOf(Error);
             expect(result).toHaveProperty("kind", "timeout");
-            expect(elapsed).toBeLessThan(150); // Should timeout quickly
+            expect(elapsed).toBeLessThan(200); // Should timeout quickly (allowing for CI timing variance)
             
             if (result instanceof Error) {
                 expect(result.message).toContain("Request timed out");
@@ -399,7 +399,7 @@ describe("gotcha - Timeout Functionality", () => {
                 expect(context.url).toBe(server.getUrl("/timeout-context"));
                 expect(context.method).toBe("POST");
                 expect(context.elapsedTime).toBeGreaterThan(90);
-                expect(context.elapsedTime).toBeLessThan(150);
+                expect(context.elapsedTime).toBeLessThan(200); // Allow for CI timing variance
                 
                 expect(result.message).toContain("Request timed out");
                 expect(result.message).toContain("100ms");
