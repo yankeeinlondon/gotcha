@@ -114,6 +114,7 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_TOKEN: ${{secrets.NPM_TOKEN}}
 
   publish_jsr:
     name: Publish to jsr
@@ -193,7 +194,7 @@ jobs:
           echo "::notice :: ${{ github.actor }} published from ${{github.ref_type}} ${{ github.ref_name }} to ${{ env.PLATFORMS }} and updated the repo's changelog entry 🚀"
 
   publish_failure:
-    name: "Publication Failed"
+    name: "Publication Failed - Cancelling Workflow"
     if: ( failure() && contains(github.event.head_commit.message, 'release v') )
     needs: 
       - publish_npm
@@ -201,12 +202,64 @@ jobs:
       - publish_jsr
       - detect_platforms
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
+      - name: "Analyze Failure"
+        continue-on-error: true
+        run: |
+          echo "::notice::Publication workflow failed - analyzing which jobs failed..."
+          
+          # Check individual job results
+          DETECT_STATUS="${{ needs.detect_platforms.result }}"
+          NPM_STATUS="${{ needs.publish_npm.result }}"
+          JSR_STATUS="${{ needs.publish_jsr.result }}"
+          GITHUB_STATUS="${{ needs.publish_github.result }}"
+          
+          FAILED_JOBS=()
+          
+          # Check each job status
+          if [ "$DETECT_STATUS" == "failure" ]; then
+            FAILED_JOBS+=("Platform Detection")
+            echo "::error::Platform Detection job failed"
+          fi
+          
+          if [ "$NPM_STATUS" == "failure" ]; then
+            FAILED_JOBS+=("NPM Publishing")
+            echo "::error::NPM Publishing job failed"
+          fi
+          
+          if [ "$JSR_STATUS" == "failure" ]; then
+            FAILED_JOBS+=("JSR Publishing")
+            echo "::error::JSR Publishing job failed"
+          fi
+          
+          if [ "$GITHUB_STATUS" == "failure" ]; then
+            FAILED_JOBS+=("GitHub Packages Publishing")
+            echo "::error::GitHub Packages Publishing job failed"
+          fi
+          
+          # Create summary
+          if [ ${#FAILED_JOBS[@]} -gt 0 ]; then
+            IFS=", "
+            FAILED_LIST="${FAILED_JOBS[*]}"
+            echo "::notice::Failed jobs: $FAILED_LIST"
+            echo "::notice::Job statuses - Platform Detection: $DETECT_STATUS, NPM: $NPM_STATUS, JSR: $JSR_STATUS, GitHub: $GITHUB_STATUS"
+          else
+            echo "::warning::No specific job failures detected, but workflow failed overall"
+          fi
+          
       - name: "Remove Tag"
+        continue-on-error: true
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          echo "Publishing failed. Deleting git tag ${TAG}..."
+          echo "Publication failed. Deleting git tag ${TAG}..."
           git push origin ":refs/tags/${TAG}"
           echo "::notice:: ${TAG} tag was removed from repo"
-      - name: "Cancel"
-        uses: andymckay/cancel-action@0.3
+      - name: "Cancel Workflow"
+        run: |
+          echo "::notice::Tests passed but publication failed - cancelling workflow to indicate controlled failure"
+          # Use the GitHub API to cancel the workflow
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/cancel"
