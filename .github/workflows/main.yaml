@@ -13,6 +13,8 @@ jobs:
   detect_platforms:
     name: Detect Available Publishing Platforms
     if: contains(github.event.head_commit.message, 'release v')
+    needs: 
+      - testing
     runs-on: ubuntu-latest
     outputs:
       npm: ${{ steps.platform-detection.outputs.npm }}
