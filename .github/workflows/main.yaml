@@ -23,58 +23,41 @@ jobs:
       platforms: ${{ steps.platform-detection.outputs.platforms }}
       has_npm_token: ${{ steps.platform-detection.outputs.has_npm_token }}
     steps:
-      - name: Early Problem Detection - Check Token Permissions
+      - name: Early Problem Detection - Check Workflow Permissions
         run: |
-          echo "Checking GitHub token permissions..."
+          echo "Checking workflow permissions..."
           
-          # Check token permissions via the installation API
-          TOKEN_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          # Use the correct API endpoint for workflow permissions
+          WORKFLOW_PERMS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/installation/repositories")
+            "https://api.github.com/repos/${{ github.repository }}/actions/permissions/workflow")
           
-          if echo "$TOKEN_INFO" | jq -e '.repositories' > /dev/null 2>&1; then
-            echo "ℹ️ Using GitHub App token - checking repository permissions..."
-            
-            # For GitHub App tokens, check the specific repository permissions
-            REPO_PERMS=$(echo "$TOKEN_INFO" | jq -r --arg repo "${{ github.repository }}" \
-              '.repositories[] | select(.full_name == $repo) | .permissions')
-            
-            if [ "$REPO_PERMS" != "null" ]; then
-              echo "Repository permissions: $REPO_PERMS"
-              CONTENTS_WRITE=$(echo "$REPO_PERMS" | jq -r '.contents // "none"')
-              METADATA_WRITE=$(echo "$REPO_PERMS" | jq -r '.metadata // "none"')
-              
-              if [ "$CONTENTS_WRITE" = "write" ] && [ "$METADATA_WRITE" = "write" ]; then
-                echo "✅ Token has sufficient permissions for changelogithub"
-              else
-                echo "::error::Insufficient permissions for changelogithub"
-                echo "::error::Contents permission: $CONTENTS_WRITE (need: write)"
-                echo "::error::Metadata permission: $METADATA_WRITE (need: write)"
-                exit 32
-              fi
-            fi
+          echo "Workflow permissions response:"
+          echo "$WORKFLOW_PERMS" | jq '.'
+          
+          # Check if we got an error response
+          if echo "$WORKFLOW_PERMS" | jq -e '.message' > /dev/null 2>&1; then
+            ERROR_MSG=$(echo "$WORKFLOW_PERMS" | jq -r '.message')
+            echo "::error::Failed to check workflow permissions: $ERROR_MSG"
+            echo "::warning::Cannot verify permissions - changelogithub may fail if permissions are insufficient"
           else
-            echo "ℹ️ Using workflow GITHUB_TOKEN - checking workflow permissions setting..."
+            # Check the default_workflow_permissions setting
+            DEFAULT_PERMS=$(echo "$WORKFLOW_PERMS" | jq -r '.default_workflow_permissions // "read"')
+            CAN_APPROVE_PR=$(echo "$WORKFLOW_PERMS" | jq -r '.can_approve_pull_request_reviews // false')
             
-            # For workflow tokens, we need to check the workflow permissions indirectly
-            # Try to get repository info which should show our permission level
-            REPO_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}")
+            echo "Default workflow permissions: $DEFAULT_PERMS"
+            echo "Can approve PR reviews: $CAN_APPROVE_PR"
             
-            # Check if we have admin/write access by looking at permissions in repo response
-            PERMISSIONS=$(echo "$REPO_INFO" | jq -r '.permissions // {}')
-            ADMIN=$(echo "$PERMISSIONS" | jq -r '.admin // false')
-            PUSH=$(echo "$PERMISSIONS" | jq -r '.push // false')
-            
-            echo "Repository access - Admin: $ADMIN, Push: $PUSH"
-            
-            if [ "$ADMIN" = "true" ] || [ "$PUSH" = "true" ]; then
-              echo "✅ Token appears to have write permissions"
+            if [ "$DEFAULT_PERMS" = "write" ]; then
+              echo "✅ Workflow permissions are set to 'write' - changelogithub should work"
+            elif [ "$DEFAULT_PERMS" = "read" ]; then
+              echo "::error::Workflow permissions are set to 'read' - changelogithub will fail!"
+              echo "::error::Please go to Settings > Actions > General > Workflow permissions"
+              echo "::error::Change from 'Read repository contents and packages permissions' to 'Read and write permissions'"
+              exit 1
             else
-              echo "::warning::Cannot determine token permissions from API"
-              echo "::warning::If changelogithub fails, check Settings > Actions > General > Workflow permissions"
-              echo "::warning::Ensure 'Read and write permissions' is selected"
+              echo "::warning::Unknown workflow permissions setting: $DEFAULT_PERMS"
+              echo "::warning::changelogithub may fail if permissions are insufficient"
             fi
           fi
 
@@ -134,10 +117,10 @@ jobs:
       - name: "Early Problem Detection - NPM Token"
         if: steps.platform-detection.outputs.npm != '' && steps.platform-detection.outputs.has_npm_token == 'false'
         run: |
-          echo "::error::NPM is a target platform but NPM_TOKEN secret is missing or empty!"
+          echo "::warning::NPM is a target platform but NPM_TOKEN secret is missing or empty!"
           echo "NPM detected: ${{ steps.platform-detection.outputs.npm }}"
           echo "Has NPM Token: ${{ steps.platform-detection.outputs.has_npm_token }}"
-          exit 1
+          exit 16
       - name: "Ready"
         run: |
           echo "ready to publish"
@@ -174,7 +157,7 @@ jobs:
             echo "❌ NPM authentication failed"
             echo "Trying to ping registry..."
             npm ping --registry https://registry.npmjs.org/
-            exit 1
+            exit 99
           fi
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
@@ -195,7 +178,7 @@ jobs:
             echo "::error::Package '$PACKAGE_NAME' does not exist on NPM registry"
             echo "::error::Please create the package first by running 'npm publish --access public' or 'npm publish --access restricted' locally"
             echo "::error::This workflow only publishes updates to existing packages to preserve access settings"
-            exit 1
+            exit 199
           fi
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
@@ -328,7 +311,7 @@ jobs:
       - name: "Analyze Failure"
         continue-on-error: true
         run: |
-          echo "::notice::Publication workflow failed - analyzing which jobs failed..."
+          echo "::error::Publication workflow failed"
           
           # Check individual job results
           DETECT_STATUS="${{ needs.detect_platforms.result }}"
@@ -341,7 +324,7 @@ jobs:
           # Check each job status
           if [ "$DETECT_STATUS" == "failure" ]; then
             FAILED_JOBS+=("Platform Detection")
-            echo "::error::Platform Detection job failed"
+            echo "::error::Platform Detection (early error detection) job failed"
           fi
           
           if [ "$NPM_STATUS" == "failure" ]; then
