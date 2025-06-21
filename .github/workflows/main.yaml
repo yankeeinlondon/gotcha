@@ -27,38 +27,65 @@ jobs:
         run: |
           echo "Checking workflow permissions..."
           
-          # Use the correct API endpoint for workflow permissions
-          WORKFLOW_PERMS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          # Try the repository actions permissions endpoint
+          echo "Attempting to check repository actions permissions..."
+          REPO_ACTIONS=$(curl -s -w "HTTP_STATUS:%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/permissions/workflow")
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/permissions")
           
-          echo "Workflow permissions response:"
-          echo "$WORKFLOW_PERMS" | jq '.'
+          HTTP_STATUS=$(echo "$REPO_ACTIONS" | grep -o "HTTP_STATUS:[0-9]*" | cut -d: -f2)
+          RESPONSE_BODY=$(echo "$REPO_ACTIONS" | sed 's/HTTP_STATUS:[0-9]*$//')
           
-          # Check if we got an error response
-          if echo "$WORKFLOW_PERMS" | jq -e '.message' > /dev/null 2>&1; then
-            ERROR_MSG=$(echo "$WORKFLOW_PERMS" | jq -r '.message')
-            echo "::error::Failed to check workflow permissions: $ERROR_MSG"
-            echo "::warning::Cannot verify permissions - changelogithub may fail if permissions are insufficient"
-          else
-            # Check the default_workflow_permissions setting
-            DEFAULT_PERMS=$(echo "$WORKFLOW_PERMS" | jq -r '.default_workflow_permissions // "read"')
-            CAN_APPROVE_PR=$(echo "$WORKFLOW_PERMS" | jq -r '.can_approve_pull_request_reviews // false')
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response:"
+          echo "$RESPONSE_BODY" | jq '.' 2>/dev/null || echo "$RESPONSE_BODY"
+          
+          if [ "$HTTP_STATUS" = "200" ]; then
+            # Check if we can see enabled/allowed_actions
+            ENABLED=$(echo "$RESPONSE_BODY" | jq -r '.enabled // "unknown"')
+            ALLOWED_ACTIONS=$(echo "$RESPONSE_BODY" | jq -r '.allowed_actions // "unknown"')
             
-            echo "Default workflow permissions: $DEFAULT_PERMS"
-            echo "Can approve PR reviews: $CAN_APPROVE_PR"
+            echo "Actions enabled: $ENABLED"
+            echo "Allowed actions: $ALLOWED_ACTIONS"
             
-            if [ "$DEFAULT_PERMS" = "write" ]; then
-              echo "✅ Workflow permissions are set to 'write' - changelogithub should work"
-            elif [ "$DEFAULT_PERMS" = "read" ]; then
-              echo "::error::Workflow permissions are set to 'read' - changelogithub will fail!"
-              echo "::error::Please go to Settings > Actions > General > Workflow permissions"
-              echo "::error::Change from 'Read repository contents and packages permissions' to 'Read and write permissions'"
-              exit 1
+            # Now try the workflow permissions endpoint
+            echo ""
+            echo "Checking default workflow permissions..."
+            WORKFLOW_PERMS=$(curl -s -w "HTTP_STATUS:%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/permissions/workflow")
+            
+            WF_HTTP_STATUS=$(echo "$WORKFLOW_PERMS" | grep -o "HTTP_STATUS:[0-9]*" | cut -d: -f2)
+            WF_RESPONSE_BODY=$(echo "$WORKFLOW_PERMS" | sed 's/HTTP_STATUS:[0-9]*$//')
+            
+            echo "Workflow permissions HTTP Status: $WF_HTTP_STATUS"
+            echo "Workflow permissions response:"
+            echo "$WF_RESPONSE_BODY" | jq '.' 2>/dev/null || echo "$WF_RESPONSE_BODY"
+            
+            if [ "$WF_HTTP_STATUS" = "200" ]; then
+              DEFAULT_PERMS=$(echo "$WF_RESPONSE_BODY" | jq -r '.default_workflow_permissions // "unknown"')
+              echo "Default workflow permissions: $DEFAULT_PERMS"
+              
+              if [ "$DEFAULT_PERMS" = "write" ]; then
+                echo "✅ Workflow permissions are correctly set to 'write'"
+              elif [ "$DEFAULT_PERMS" = "read" ]; then
+                echo "::error::Workflow permissions are set to 'read' - changelogithub will fail!"
+                echo "::error::Go to Settings > Actions > General > Workflow permissions"
+                echo "::error::Change to 'Read and write permissions'"
+                exit 1
+              else
+                echo "::warning::Unknown permissions setting: $DEFAULT_PERMS"
+              fi
             else
-              echo "::warning::Unknown workflow permissions setting: $DEFAULT_PERMS"
-              echo "::warning::changelogithub may fail if permissions are insufficient"
+              echo "::warning::Cannot check workflow permissions (HTTP $WF_HTTP_STATUS)"
             fi
+          else
+            echo "::warning::Cannot check repository actions permissions (HTTP $HTTP_STATUS)"
+            echo "::warning::If changelogithub fails, check Settings > Actions > General > Workflow permissions"
           fi
 
       - name: Checkout repo
@@ -69,23 +96,29 @@ jobs:
         run: |
           # NPM Detection
           NPM=""
-          if [ -f "package.json" ]; then
+          if [ -f "package.json" ] && [ ! -f ".skip-npm" ]; then
             PRIVATE=$(cat package.json | jq -r '.private // false')
             if [ "$PRIVATE" != "true" ]; then
               NPM="npm"
             fi
+          elif [ -f ".skip-npm" ]; then
+            echo "ℹ️ Skipping NPM publication (found .skip-npm file)"
           fi
           
           # JSR Detection
           JSR=""
-          if [ -f "deno.json" ] || [ -f "deno.jsonc" ] || [ -f "jsr.json" ] || [ -f "jsr.jsonc" ]; then
+          if ([ -f "deno.json" ] || [ -f "deno.jsonc" ] || [ -f "jsr.json" ] || [ -f "jsr.jsonc" ]) && [ ! -f ".skip-jsr" ]; then
             JSR="jsr"
+          elif [ -f ".skip-jsr" ]; then
+            echo "ℹ️ Skipping JSR publication (found .skip-jsr file)"
           fi
           
           # GitHub Packages Detection
           GITHUB_PACKAGES=""
-          if [ -f ".npmrc.github" ]; then
+          if [ -f ".npmrc.github" ] && [ ! -f ".skip-github-packages" ]; then
             GITHUB_PACKAGES="Github packages"
+          elif [ -f ".skip-github-packages" ]; then
+            echo "ℹ️ Skipping GitHub Packages publication (found .skip-github-packages file)"
           fi
           
           # Generate platform list
@@ -149,8 +182,36 @@ jobs:
         run: pnpm install
       - name: Build
         run: nr build
+      - name: Check NPM Token Secret
+        run: |
+          echo "Checking NPM_TOKEN secret availability..."
+          if [ -z "$NPM_TOKEN_VALUE" ]; then
+            echo "::error::NPM_TOKEN secret is not accessible!"
+            echo "::error::Please verify NPM_TOKEN is set in repository secrets"
+            echo "::error::Go to Settings > Secrets and variables > Actions > Repository secrets"
+            exit 1
+          else
+            echo "✅ NPM_TOKEN secret is accessible"
+            echo "Token length: ${#NPM_TOKEN_VALUE} characters"
+          fi
+        env:
+          NPM_TOKEN_VALUE: ${{ secrets.NPM_TOKEN }}
       - name: Verify NPM Authentication
         run: |
+          echo "Debugging authentication setup..."
+          echo "NODE_AUTH_TOKEN is set: $([ -n "$NODE_AUTH_TOKEN" ] && echo 'YES' || echo 'NO')"
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo "NODE_AUTH_TOKEN length: ${#NODE_AUTH_TOKEN} characters"
+          fi
+          echo "NPM config userconfig: $NPM_CONFIG_USERCONFIG"
+          echo "Current .npmrc contents:"
+          cat ~/.npmrc 2>/dev/null || echo "No ~/.npmrc file found"
+          if [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+            echo "NPM userconfig file contents:"
+            cat "$NPM_CONFIG_USERCONFIG"
+          fi
+          echo ""
+          echo "Testing authentication..."
           if npm whoami; then
             echo "✅ NPM authentication successful"
           else
