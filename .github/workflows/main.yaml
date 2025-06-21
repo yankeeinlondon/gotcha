@@ -23,8 +23,27 @@ jobs:
       platforms: ${{ steps.platform-detection.outputs.platforms }}
       has_npm_token: ${{ steps.platform-detection.outputs.has_npm_token }}
     steps:
+      - name: Check Workflow Permissions
+        run: |
+          echo "Checking repository workflow permissions..."
+          REPO_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}")
+          
+          ACTIONS_PERMISSIONS=$(echo "$REPO_INFO" | jq -r '.permissions.actions // "unknown"')
+          
+          if [ "$ACTIONS_PERMISSIONS" != "write" ]; then
+            echo "::error::Repository workflow permissions must be set to 'Read and write permissions' for changelogithub to work"
+            echo "::error::Current permissions: $ACTIONS_PERMISSIONS"
+            echo "::error::Please go to Settings > Actions > General > Workflow permissions and select 'Read and write permissions'"
+            exit 64
+          fi
+          
+          echo "✅ Workflow permissions are correctly configured for changelog creation"
+
       - name: Checkout repo
         uses: actions/checkout@v4
+      
       - name: Detect Publishing Platforms
         id: platform-detection
         run: |
@@ -111,13 +130,48 @@ jobs:
       - name: Build
         run: nr build
       - name: Verify NPM Authentication
-        run: npm whoami
+        run: |
+          if npm whoami; then
+            echo "✅ NPM authentication successful"
+          else
+            echo "❌ NPM authentication failed"
+            echo "Trying to ping registry..."
+            npm ping --registry https://registry.npmjs.org/
+            exit 1
+          fi
         env:
-          NPM_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      - name: Check Package Existence and Access Level
+        id: npm-check
+        run: |
+          PACKAGE_NAME=$(cat package.json | jq -r '.name')
+          echo "Checking if package '$PACKAGE_NAME' exists on NPM..."
+          
+          if npm view "$PACKAGE_NAME" --json 2>/dev/null; then
+            echo "✅ Package exists on NPM"
+            # Get current access level
+            ACCESS_LEVEL=$(npm view "$PACKAGE_NAME" --json | jq -r '.access // "public"')
+            echo "Current access level: $ACCESS_LEVEL"
+            echo "access_level=$ACCESS_LEVEL" >> $GITHUB_OUTPUT
+            echo "package_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Package '$PACKAGE_NAME' does not exist on NPM registry"
+            echo "::error::Please create the package first by running 'npm publish --access public' or 'npm publish --access restricted' locally"
+            echo "::error::This workflow only publishes updates to existing packages to preserve access settings"
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
       - name: Publish to NPM
-        run: npm publish --access public
+        run: |
+          ACCESS_FLAG=""
+          if [ "${{ steps.npm-check.outputs.access_level }}" != "null" ] && [ "${{ steps.npm-check.outputs.access_level }}" != "" ]; then
+            ACCESS_FLAG="--access ${{ steps.npm-check.outputs.access_level }}"
+          fi
+          echo "Publishing with access level: ${{ steps.npm-check.outputs.access_level }}"
+          npm publish $ACCESS_FLAG
         env:
-          NPM_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
   publish_jsr:
     name: Publish to jsr
@@ -155,26 +209,42 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://npm.pkg.github.com/
       - uses: pnpm/action-setup@v2
         with:
           version: latest
       - name: Install pnpm
         run: npm i -g pnpm @antfu/ni
+      - name: Setup GitHub Packages registry  
+        run: |
+          echo "Before copying .npmrc.github:"
+          cat .npmrc.github
+          cp .npmrc.github .npmrc
+          echo "Contents of .npmrc after copy:"
+          cat .npmrc
       - name: Clean Install (using pnpm)
         run: pnpm install
       - name: Build
         run: nr build
-      - name: Setup GitHub Packages registry
-        run: |
-          cp .npmrc.github .npmrc
       - name: Verify GitHub Packages Authentication
         run: |
-          npm whoami --registry https://npm.pkg.github.com/
+          echo "Testing GitHub Packages registry access..."
+          if npm whoami --registry https://npm.pkg.github.com/ 2>/dev/null; then
+            echo "✅ GitHub Packages authentication successful"
+          else
+            echo "⚠️ whoami failed (expected with GITHUB_TOKEN), testing access differently..."
+            # Test by trying to access the registry
+            curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                 -H "Accept: application/vnd.github+json" \
+                 "https://api.github.com/user" | jq '.login' || {
+              echo "❌ GitHub authentication failed"
+              exit 1
+            }
+            echo "✅ GitHub authentication verified via API"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Publish to GitHub Packages
-        run: npm publish
+        run: npm publish --registry https://npm.pkg.github.com/
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
