@@ -4,29 +4,112 @@ on:
   push:
     branches:
       - main
-      - master
 
 jobs:
   testing:
     name: testing
     uses: yankeeinlondon/gha/.github/workflows/test.yml@main
 
-  publish:
-    name: npm
+  detect_platforms:
+    name: Detect Available Publishing Platforms
+    if: contains(github.event.head_commit.message, 'release v')
+    runs-on: ubuntu-latest
+    outputs:
+      npm: ${{ steps.platform-detection.outputs.npm }}
+      jsr: ${{ steps.platform-detection.outputs.jsr }}
+      github_packages: ${{ steps.platform-detection.outputs.github_packages }}
+      platforms: ${{ steps.platform-detection.outputs.platforms }}
+      has_npm_token: ${{ steps.platform-detection.outputs.has_npm_token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect Publishing Platforms
+        id: platform-detection
+        run: |
+          # NPM Detection
+          NPM=""
+          if [ -f "package.json" ]; then
+            PRIVATE=$(cat package.json | jq -r '.private // false')
+            if [ "$PRIVATE" != "true" ]; then
+              NPM="npm"
+            fi
+          fi
+          
+          # JSR Detection
+          JSR=""
+          if [ -f "deno.json" ] || [ -f "deno.jsonc" ] || [ -f "jsr.json" ] || [ -f "jsr.jsonc" ]; then
+            JSR="jsr"
+          fi
+          
+          # GitHub Packages Detection
+          GITHUB_PACKAGES=""
+          if [ -f ".npmrc.github" ]; then
+            GITHUB_PACKAGES="Github packages"
+          fi
+          
+          # Generate platform list
+          PLATFORMS=""
+          PLATFORM_ARRAY=()
+          [ -n "$NPM" ] && PLATFORM_ARRAY+=("$NPM")
+          [ -n "$JSR" ] && PLATFORM_ARRAY+=("$JSR")
+          [ -n "$GITHUB_PACKAGES" ] && PLATFORM_ARRAY+=("$GITHUB_PACKAGES")
+          
+          # Join array elements with comma and space
+          IFS=", "
+          PLATFORMS="${PLATFORM_ARRAY[*]}"
+          
+          # Check NPM token availability
+          HAS_NPM_TOKEN="${{ secrets.npm_token != '' }}"
+          
+          # Set outputs
+          echo "npm=$NPM" >> $GITHUB_OUTPUT
+          echo "jsr=$JSR" >> $GITHUB_OUTPUT
+          echo "github_packages=$GITHUB_PACKAGES" >> $GITHUB_OUTPUT
+          echo "platforms=$PLATFORMS" >> $GITHUB_OUTPUT
+          echo "has_npm_token=$HAS_NPM_TOKEN" >> $GITHUB_OUTPUT
+          
+          # Debug output
+          echo "::notice::Detected platforms: $PLATFORMS"
+          echo "::notice::NPM: '$NPM', JSR: '$JSR', GitHub Packages: '$GITHUB_PACKAGES'"
+
+  ready:
+    name: Validating Readiness to Publish
     if: ( contains(github.event.head_commit.message, 'release v') )
     needs:
-      - testing
+      - detect_platforms
+    env:
+      HAS_NPM_TOKEN: ${{ needs.detect_platforms.outputs.has_npm_token }}
+      NPM: ${{ needs.detect_platforms.outputs.npm }}
+      JSR: ${{ needs.detect_platforms.outputs.jsr }}
+      GITHUB_PACKAGES: ${{ needs.detect_platforms.outputs.github_packages }}
+      PLATFORMS: ${{ needs.detect_platforms.outputs.platforms }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Missing NPM_TOKEN!
+        if: ( env.NPM != '' && env.HAS_NPM_TOKEN == 'false' )
+        uses: andymckay/cancel-action@0.3
+      - name: "platforms"
+        run: |
+          echo "::notice:: ready to publish to: ${PLATFORMS}"
+
+  publish_npm:
+    name: Publish to npm
+    if: ( contains(github.event.head_commit.message, 'release v') && needs.detect_platforms.outputs.npm != '' )
+    needs:
+      - ready
+      - detect_platforms
     uses: yankeeinlondon/gha/.github/workflows/npm.yml@main
     with:
       nodeVersion: 22
     secrets:
-      npm_token: ${{secrets.NPM_TOKEN}}
+      npm_token: ${{secrets.npm_token}}
 
   publish_jsr:
-    name: jsr
-    if: ( contains(github.event.head_commit.message, 'release v') )
+    name: Publish to jsr
+    if: ( contains(github.event.head_commit.message, 'release v') && needs.detect_platforms.outputs.jsr != '' )
     needs:
-      - testing
+      - ready
+      - detect_platforms
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,40 +126,80 @@ jobs:
       - name: Publish to JSR
         run: npx jsr publish
 
-  # publish_github:
-  #   name: github packages
-  #   if: ( contains(github.event.head_commit.message, 'release v') )
-  #   needs:
-  #     - testing
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #     packages: write
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 22
-  #     - uses: pnpm/action-setup@v2
-  #       with:
-  #         version: latest
-  #     - run: pnpm install --frozen-lockfile
-  #     - run: pnpm build
-  #     - name: Setup GitHub Packages registry
-  #       run: |
-  #         cp .npmrc.github .npmrc
-  #     - name: Publish to GitHub Packages
-  #       run: npm publish
-  #       env:
-  #         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-
-  do_not_publish:
-    name: npm / no publication
-    if: ( !contains(github.event.head_commit.message, 'release v') )
-    runs-on: ubuntu-latest
+  publish_github:
+    name: Publish to Github Packages
+    if: ( contains(github.event.head_commit.message, 'release v') && needs.detect_platforms.outputs.github_packages != '' )
     needs:
-      - testing
+      - ready
+      - detect_platforms
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Done
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+      - name: Install pnpm
+        run: npm i -g pnpm @antfu/ni
+      - name: Clean Install (using pnpm)
+        run: pnpm install
+      - name: Build
+        run: nr build
+      - name: Setup GitHub Packages registry
         run: |
-          echo "::notice ::No need to publish to NPM"
+          cp .npmrc.github .npmrc
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.github_token}}
+
+  publish_success:
+    name: "Publication Successful: ${{ github.event.head_commit.message }}"
+    if: ( !failure() && contains(github.event.head_commit.message, 'release v') )
+    needs:
+      - publish_npm
+      - publish_github
+      - publish_jsr
+      - detect_platforms
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Changelog Entry
+        run: npx changelogithub
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Done
+        env:
+          HAS_NPM_TOKEN: ${{ needs.detect_platforms.outputs.has_npm_token }}
+          NPM: ${{ needs.detect_platforms.outputs.npm }}
+          JSR: ${{ needs.detect_platforms.outputs.jsr }}
+          GITHUB_PACKAGES: ${{ needs.detect_platforms.outputs.github_packages }}
+          PLATFORMS: ${{ needs.detect_platforms.outputs.platforms }}
+        run: |
+          echo "::notice :: ${{ github.actor }} published from ${{github.ref_type}} ${{ github.ref_name }} to ${{ env.PLATFORMS }} and updated the repo's changelog entry 🚀"
+
+  publish_failure:
+    name: "Failed to Publish"
+    if: ( failure() && contains(github.event.head_commit.message, 'release v') )
+    needs: 
+      - publish_npm
+      - publish_github
+      - publish_jsr
+      - detect_platforms
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Remove Tag"
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Publishing failed. Deleting git tag ${TAG}..."
+          git push origin ":refs/tags/${TAG}"
+          echo "::notice:: ${TAG} tag was removed from repo"
+      - name: "Cancel"
+        uses: andymckay/cancel-action@0.3
+
+
