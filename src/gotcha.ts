@@ -30,7 +30,7 @@ import { isGotchaRequest } from "./type-guards";
  * - `wasServerError(req)` - tests for server errors
  *
  * ### Advanced Use Cases
- * 
+ *
  * Refer to the `README.md` to understand more about advanced use cases.
  */
 export function gotcha<T extends GotchaRequest>(...req: T): GotchaReturn<T>;
