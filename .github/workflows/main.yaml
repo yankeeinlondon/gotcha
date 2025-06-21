@@ -96,29 +96,23 @@ jobs:
         run: |
           # NPM Detection
           NPM=""
-          if [ -f "package.json" ] && [ ! -f ".skip-npm" ]; then
+          if [ -f "package.json" ]; then
             PRIVATE=$(cat package.json | jq -r '.private // false')
             if [ "$PRIVATE" != "true" ]; then
               NPM="npm"
             fi
-          elif [ -f ".skip-npm" ]; then
-            echo "ℹ️ Skipping NPM publication (found .skip-npm file)"
           fi
           
           # JSR Detection
           JSR=""
-          if ([ -f "deno.json" ] || [ -f "deno.jsonc" ] || [ -f "jsr.json" ] || [ -f "jsr.jsonc" ]) && [ ! -f ".skip-jsr" ]; then
+          if [ -f "deno.json" ] || [ -f "deno.jsonc" ] || [ -f "jsr.json" ] || [ -f "jsr.jsonc" ]; then
             JSR="jsr"
-          elif [ -f ".skip-jsr" ]; then
-            echo "ℹ️ Skipping JSR publication (found .skip-jsr file)"
           fi
           
           # GitHub Packages Detection
           GITHUB_PACKAGES=""
-          if [ -f ".npmrc.github" ] && [ ! -f ".skip-github-packages" ]; then
+          if [ -f ".npmrc.github" ]; then
             GITHUB_PACKAGES="Github packages"
-          elif [ -f ".skip-github-packages" ]; then
-            echo "ℹ️ Skipping GitHub Packages publication (found .skip-github-packages file)"
           fi
           
           # Generate platform list
@@ -182,46 +176,10 @@ jobs:
         run: pnpm install
       - name: Build
         run: nr build
-      - name: Check NPM Token Secret
-        run: |
-          echo "Checking NPM_TOKEN secret availability..."
-          if [ -z "$NPM_TOKEN_VALUE" ]; then
-            echo "::error::NPM_TOKEN secret is not accessible!"
-            echo "::error::Please verify NPM_TOKEN is set in repository secrets"
-            echo "::error::Go to Settings > Secrets and variables > Actions > Repository secrets"
-            exit 1
-          else
-            echo "✅ NPM_TOKEN secret is accessible"
-            echo "Token length: ${#NPM_TOKEN_VALUE} characters"
-          fi
+
         env:
           NPM_TOKEN_VALUE: ${{ secrets.NPM_TOKEN }}
-      - name: Verify NPM Authentication
-        run: |
-          echo "Debugging authentication setup..."
-          echo "NODE_AUTH_TOKEN is set: $([ -n "$NODE_AUTH_TOKEN" ] && echo 'YES' || echo 'NO')"
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
-            echo "NODE_AUTH_TOKEN length: ${#NODE_AUTH_TOKEN} characters"
-          fi
-          echo "NPM config userconfig: $NPM_CONFIG_USERCONFIG"
-          echo "Current .npmrc contents:"
-          cat ~/.npmrc 2>/dev/null || echo "No ~/.npmrc file found"
-          if [ -f "$NPM_CONFIG_USERCONFIG" ]; then
-            echo "NPM userconfig file contents:"
-            cat "$NPM_CONFIG_USERCONFIG"
-          fi
-          echo ""
-          echo "Testing authentication..."
-          if npm whoami; then
-            echo "✅ NPM authentication successful"
-          else
-            echo "❌ NPM authentication failed"
-            echo "Trying to ping registry..."
-            npm ping --registry https://registry.npmjs.org/
-            exit 99
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
       - name: Check Package Existence and Access Level
         id: npm-check
         run: |
