@@ -87,10 +87,13 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - name: Missing NPM_TOKEN!
+      - name: Validate NPM Token
         if: ( env.NPM != '' && env.HAS_NPM_TOKEN == 'false' )
-        uses: andymckay/cancel-action@0.3
+        run: |
+          echo "::error::NPM publishing is configured but NPM_TOKEN secret is missing!"
+          exit 1
       - name: "platforms"
+        if: (( env.NPM != '' && env.HAS_NPM_TOKEN == 'true' ) || ( env.NPM == '' ))
         run: |
           echo "::notice:: ready to publish to: ${PLATFORMS}"
 
@@ -100,11 +103,27 @@ jobs:
     needs:
       - ready
       - detect_platforms
-    uses: yankeeinlondon/gha/.github/workflows/npm.yml@main
-    with:
-      nodeVersion: 22
-    secrets:
-      npm_token: ${{secrets.npm_token}}
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+      - name: Install pnpm
+        run: npm i -g pnpm @antfu/ni
+      - name: Clean Install
+        run: pnpm install
+      - name: Build
+        run: nr build
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token || github.event.inputs.npm_token}}
 
   publish_jsr:
     name: Publish to jsr
@@ -124,7 +143,7 @@ jobs:
       - uses: pnpm/action-setup@v2
         with:
           version: latest
-      - run: pnpm install --frozen-lockfile
+      # - run: pnpm install --frozen-lockfile
       - name: Publish to JSR
         run: npx jsr publish
 
@@ -168,6 +187,7 @@ jobs:
       - publish_npm
       - publish_github
       - publish_jsr
+      - ready
       - detect_platforms
     runs-on: ubuntu-latest
     steps:
@@ -192,6 +212,7 @@ jobs:
       - publish_npm
       - publish_github
       - publish_jsr
+      - ready
       - detect_platforms
     runs-on: ubuntu-latest
     steps:
