@@ -25,10 +25,13 @@ import { isGotchaRequest } from "./type-guards";
  * - `isOk(req)` - tests that no errors were returned and returns a successful type for `res`.
  * - `isError(req)` - tests for any of the potential error types
  * - `wasRedirected(req)` - tests only for the `Redirection` error type
- * - `timedOut(req)` - tests only for the `Timeout` error type
+ * - `didTimeout(req)` - tests only for the `Timeout` error type
  * - `wasClientError(req)` - tests for client errors
  * - `wasServerError(req)` - tests for server errors
  *
+ * ### Advanced Use Cases
+ * 
+ * Refer to the `README.md` to understand more about advanced use cases.
  */
 export function gotcha<T extends GotchaRequest>(...req: T): GotchaReturn<T>;
 export function gotcha<T extends Configure>(...req: T): GotchaReturn<T>;

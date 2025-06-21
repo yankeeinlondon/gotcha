@@ -1,5 +1,8 @@
 # Gotcha
 
+![GitHub Tag](https://img.shields.io/github/v/tag/yankeeinlondon/gotcha)
+
+
 A type-safe wrapper around the lightning fast [**undici**](https://undici.nodejs.org/#/) network client with enhanced error handling and timeout support.
 
 ## Features

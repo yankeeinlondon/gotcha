@@ -5,7 +5,7 @@ import type { IncomingHttpHeaders } from "undici/types/header";
 import type BodyReadable from "undici/types/readable";
 import { Timeout } from "~/errors";
 
-export function timedOut(val: unknown): val is KindError<"Timeout", {
+export function didTimeout(val: unknown): val is KindError<"Timeout", {
     headers: IncomingHttpHeaders;
     code: number;
     body: BodyReadable & Dispatcher.BodyMixin;
