@@ -11,7 +11,7 @@ jobs:
     uses: yankeeinlondon/gha/.github/workflows/test.yml@main
 
   detect_platforms:
-    name: Detect Available Publishing Platforms
+    name: Detect Publishing Platforms
     if: contains(github.event.head_commit.message, 'release v')
     needs: 
       - testing
@@ -23,7 +23,8 @@ jobs:
       platforms: ${{ steps.platform-detection.outputs.platforms }}
       has_npm_token: ${{ steps.platform-detection.outputs.has_npm_token }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
       - name: Detect Publishing Platforms
         id: platform-detection
         run: |
@@ -70,38 +71,19 @@ jobs:
           echo "has_npm_token=$HAS_NPM_TOKEN" >> $GITHUB_OUTPUT
           
           # Debug output
-          echo "::notice::Detected platforms: $PLATFORMS"
-          echo "::notice::NPM: '$NPM', JSR: '$JSR', GitHub Packages: '$GITHUB_PACKAGES'"
+          echo "::notice::Detected registry platforms: $PLATFORMS"
 
-  ready:
-    name: Validating Readiness to Publish
-    if: ( contains(github.event.head_commit.message, 'release v') )
-    needs:
-      - detect_platforms
-    env:
-      HAS_NPM_TOKEN: ${{ needs.detect_platforms.outputs.has_npm_token }}
-      NPM: ${{ needs.detect_platforms.outputs.npm }}
-      JSR: ${{ needs.detect_platforms.outputs.jsr }}
-      GITHUB_PACKAGES: ${{ needs.detect_platforms.outputs.github_packages }}
-      PLATFORMS: ${{ needs.detect_platforms.outputs.platforms }}
-
-    runs-on: ubuntu-latest
-    steps:
-      - name: Validate NPM Token
-        if: ( env.NPM != '' && env.HAS_NPM_TOKEN == 'false' )
+      - name: "Early Problem Detection - NPM Token"
+        if: steps.platform-detection.outputs.npm != '' && steps.platform-detection.outputs.has_npm_token == 'false'
         run: |
-          echo "::error::NPM publishing is configured but NPM_TOKEN secret is missing!"
+          echo "::notice::No NPM_TOKEN available for NPM publishing!"
           exit 1
-      - name: "platforms"
-        if: (( env.NPM != '' && env.HAS_NPM_TOKEN == 'true' ) || ( env.NPM == '' ))
-        run: |
-          echo "::notice:: ready to publish to: ${PLATFORMS}"
+
 
   publish_npm:
     name: Publish to npm
     if: ( contains(github.event.head_commit.message, 'release v') && needs.detect_platforms.outputs.npm != '' )
     needs:
-      - ready
       - detect_platforms
     runs-on: ubuntu-latest
     steps: 
@@ -129,7 +111,6 @@ jobs:
     name: Publish to jsr
     if: ( contains(github.event.head_commit.message, 'release v') && needs.detect_platforms.outputs.jsr != '' )
     needs:
-      - ready
       - detect_platforms
     runs-on: ubuntu-latest
     permissions:
@@ -151,7 +132,6 @@ jobs:
     name: Publish to Github Packages
     if: ( contains(github.event.head_commit.message, 'release v') && needs.detect_platforms.outputs.github_packages != '' )
     needs:
-      - ready
       - detect_platforms
     runs-on: ubuntu-latest
 
@@ -181,13 +161,12 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.github_token}}
 
   publish_success:
-    name: "Publication Successful: ${{ github.event.head_commit.message }}"
+    name: "Publication Successful"
     if: ( !failure() && contains(github.event.head_commit.message, 'release v') )
     needs:
       - publish_npm
       - publish_github
       - publish_jsr
-      - ready
       - detect_platforms
     runs-on: ubuntu-latest
     steps:
@@ -206,13 +185,12 @@ jobs:
           echo "::notice :: ${{ github.actor }} published from ${{github.ref_type}} ${{ github.ref_name }} to ${{ env.PLATFORMS }} and updated the repo's changelog entry 🚀"
 
   publish_failure:
-    name: "Failed to Publish"
+    name: "Publication Failed"
     if: ( failure() && contains(github.event.head_commit.message, 'release v') )
     needs: 
       - publish_npm
       - publish_github
       - publish_jsr
-      - ready
       - detect_platforms
     runs-on: ubuntu-latest
     steps:
@@ -224,5 +202,3 @@ jobs:
           echo "::notice:: ${TAG} tag was removed from repo"
       - name: "Cancel"
         uses: andymckay/cancel-action@0.3
-
-
