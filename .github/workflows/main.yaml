@@ -114,7 +114,6 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-          NPM_TOKEN: ${{secrets.NPM_TOKEN}}
 
   publish_jsr:
     name: Publish to jsr
@@ -152,6 +151,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://npm.pkg.github.com/
       - uses: pnpm/action-setup@v2
         with:
           version: latest
@@ -167,7 +167,7 @@ jobs:
       - name: Publish to GitHub Packages
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{secrets.github_token}}
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
   publish_success:
     name: "Publication Successful"
@@ -194,7 +194,7 @@ jobs:
           echo "::notice :: ${{ github.actor }} published from ${{github.ref_type}} ${{ github.ref_name }} to ${{ env.PLATFORMS }} and updated the repo's changelog entry 🚀"
 
   publish_failure:
-    name: "Publication Failed - Cancelling Workflow"
+    name: "Publication Failure"
     if: ( failure() && contains(github.event.head_commit.message, 'release v') )
     needs: 
       - publish_npm
