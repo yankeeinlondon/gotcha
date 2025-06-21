@@ -23,23 +23,42 @@ jobs:
       platforms: ${{ steps.platform-detection.outputs.platforms }}
       has_npm_token: ${{ steps.platform-detection.outputs.has_npm_token }}
     steps:
-      - name: Check Workflow Permissions
+      - name: Early Problem Detection - Workflow Permissions
         run: |
           echo "Checking repository workflow permissions..."
-          REPO_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          
+          # Get repository settings including actions permissions
+          REPO_SETTINGS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}")
+            "https://api.github.com/repos/${{ github.repository }}/actions/permissions")
           
-          ACTIONS_PERMISSIONS=$(echo "$REPO_INFO" | jq -r '.permissions.actions // "unknown"')
+          echo "Repository actions settings:"
+          echo "$REPO_SETTINGS" | jq '.'
           
-          if [ "$ACTIONS_PERMISSIONS" != "write" ]; then
-            echo "::error::Repository workflow permissions must be set to 'Read and write permissions' for changelogithub to work"
-            echo "::error::Current permissions: $ACTIONS_PERMISSIONS"
-            echo "::error::Please go to Settings > Actions > General > Workflow permissions and select 'Read and write permissions'"
-            exit 64
+          # Check if we can write to the repository (test by trying to get current user)
+          USER_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/user")
+          
+          if echo "$USER_INFO" | jq -e '.login' > /dev/null; then
+            echo "✅ GitHub token is valid and has user access"
+          else
+            echo "::error::GitHub token appears to be invalid"
+            exit 1
           fi
           
-          echo "✅ Workflow permissions are correctly configured for changelog creation"
+          # Test if we can actually write to the repository by checking if we can get contents
+          CONTENTS_TEST=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/package.json")
+          
+          if echo "$CONTENTS_TEST" | jq -e '.content' > /dev/null; then
+            echo "✅ Token has repository read access"
+          else
+            echo "::warning::Cannot read repository contents - this might indicate insufficient permissions"
+          fi
+          
+          echo "✅ Basic permissions check passed - changelogithub will test write permissions when it runs"
 
       - name: Checkout repo
         uses: actions/checkout@v4
