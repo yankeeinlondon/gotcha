@@ -302,6 +302,11 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
+      - name: Checkout repo for tag removal
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: "Analyze Failure"
         continue-on-error: true
         run: |
@@ -349,10 +354,26 @@ jobs:
       - name: "Remove Tag"
         continue-on-error: true
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "Publication failed. Deleting git tag ${TAG}..."
-          git push origin ":refs/tags/${TAG}"
-          echo "::notice:: ${TAG} tag was removed from repo"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${{ github.ref_name }}"
+            echo "Publication failed. Attempting to delete git tag: ${TAG}"
+            
+            # First check if the tag exists
+            if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+              echo "Tag ${TAG} exists, removing it..."
+              if git push origin ":refs/tags/${TAG}"; then
+                echo "::notice::Successfully removed tag ${TAG} from repository"
+              else
+                echo "::error::Failed to remove tag ${TAG} - you may need to remove it manually"
+                echo "::error::Run: git push origin :refs/tags/${TAG}"
+              fi
+            else
+              echo "::warning::Tag ${TAG} does not exist or was already removed"
+            fi
+          else
+            echo "::warning::Workflow was not triggered by a tag, skipping tag removal"
+            echo "Reference type: ${{ github.ref_type }}, ref: ${{ github.ref }}"
+          fi
       - name: "Cancel Workflow"
         run: |
           echo "::notice::Tests passed but publication failed - cancelling workflow to indicate controlled failure"
