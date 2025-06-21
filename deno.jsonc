@@ -24,6 +24,12 @@
         ]
     },
     "publish": {
+        "include": [
+            "README.md",
+            "package.json",
+            "deno.jsonc",
+            "src"
+        ],
         "exclude": [
             ".ai/",
             ".claude/",
