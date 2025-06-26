@@ -1,6 +1,6 @@
 {
     "name": "@yankeeinlondon/gotcha",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "A type strong wrapper around the undici network client",
     "type": "module",
     "module": "dist/index.js",
