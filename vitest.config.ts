@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 // Resolve the directory name for ESM
