@@ -17,13 +17,17 @@ export default defineConfig({
     environment: "node",
     coverage: {
       provider: "v8",
-      reporter: ["text", "html"],
+      reporter: ["text", "html", "json"],
       exclude: [
         "node_modules/**",
         "tests/**",
         "**/*.config.*",
-        "**/*.d.ts"
+        "**/*.d.ts",
+        "**/index.ts",
+        "dist",
+        "**/*.js"
       ]
     }
   },
+
 });
