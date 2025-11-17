@@ -19,7 +19,7 @@ describe("gotcha - Timeout Edge Cases", () => {
             });
 
             // Create multiple requests to test cleanup
-            const promises = Array(5).fill(null).map((_, i) => 
+            const promises = Array(5).fill(null).map((_, _i) => 
                 gotcha(server.getUrl("/cleanup-success"), {
                     timeout: 1000 // Long timeout, should not trigger
                 })
@@ -89,7 +89,7 @@ describe("gotcha - Timeout Edge Cases", () => {
             });
 
             // Fire off many requests rapidly
-            const promises = Array(10).fill(null).map((_, i) => 
+            const promises = Array(10).fill(null).map((_, _i) => 
                 gotcha(server.getUrl("/rapid-requests"), {
                     timeout: 1000
                 })
